@@ -21,8 +21,9 @@ in
       pkgs,
       pname,
       version,
-      # The extension's stable Chrome ID (16-char a-p). Required — see above.
-      extId,
+      # The extension's stable Chrome ID (16-char a-p). Required when `chrome` is
+      # true — see above. Unused (and may be omitted) for Firefox-only extensions.
+      extId ? null,
       # Firefox gecko id. Defaults to manifest.browser_specific_settings.gecko.id.
       geckoId ? null,
       # Either a pre-assembled derivation exposing the unpacked extension at
@@ -64,6 +65,12 @@ in
 
       manifest = builtins.fromJSON (builtins.readFile "${content}/share/chromium-extension/manifest.json");
 
+      # extId is only meaningful for the Chrome half; require it there.
+      _extIdOk = assertMsg (!chrome || extId != null)
+        "mkBrowserExtension: `extId` is required when `chrome` is true (pass the stable Chrome ID the signing key derives)";
+
+      # Resolved lazily: a Firefox-less extension never forces this, so a missing
+      # gecko id is only an error for extensions that actually emit a Firefox XPI.
       geckoId' =
         if geckoId != null then
           geckoId
@@ -122,7 +129,7 @@ in
       # This is the one place the build and the signer agree on a filesystem
       # contract; crxDir mirrors module.nix's crxDir.
       crxDir = "/var/lib/chromium-crx";
-      chromeExternalJson = pkgs.writeText "${extId}.json" (builtins.toJSON {
+      chromeExternalJson = assert _extIdOk; pkgs.writeText "${extId}.json" (builtins.toJSON {
         external_crx = "${crxDir}/${extId}.crx";
         external_version = version;
       });
@@ -169,8 +176,13 @@ in
       inherit extId;
       geckoId = geckoId';
       inherit version;
-      # The Chrome-transformed unpacked content; the module signs this.
-      chromeContent = "${chromeContent}/share/chromium-extension";
+      # The Chrome-transformed unpacked content as a DERIVATION (files at
+      # $out/share/chromium-extension). The signer module references this so it
+      # lands in the system closure — guaranteeing the content is built /
+      # substituted on the host before activation signs it. (A bare string path
+      # would not pull the derivation into any closure, so the path could be
+      # absent at sign time.)
+      inherit chromeContent;
 
       default =
         if builtins.length defaultPaths == 1 then

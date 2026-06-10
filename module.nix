@@ -74,7 +74,7 @@ in
           case " $keep " in *" $id "*) ;; *) rm -f "$f" ;; esac
         done
         ${lib.concatMapStringsSep "\n" (e: ''
-          pack-crx3 ${lib.escapeShellArg e.package.chromeContent} \
+          pack-crx3 ${e.package.chromeContent}/share/chromium-extension \
             "${config.sops.secrets.${e.keySecret}.path}" \
             ${crxDir}/${e.package.extId}.crx
           chmod 0644 ${crxDir}/${e.package.extId}.crx

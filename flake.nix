@@ -54,7 +54,7 @@
         {
           # The Chrome manifest must keep only service_worker; Firefox only scripts.
           mv3-transform = pkgs.runCommand "mv3-transform-check" { nativeBuildInputs = [ pkgs.jq ]; } ''
-            chromeBg=$(jq -c '.background' ${example.chromeContent}/manifest.json)
+            chromeBg=$(jq -c '.background' ${example.chromeContent}/share/chromium-extension/manifest.json)
             [ "$chromeBg" = '{"service_worker":"background.js"}' ] || { echo "chrome bg wrong: $chromeBg"; exit 1; }
             ${pkgs.unzip}/bin/unzip -o ${example.firefox}/${builderLib.firefoxAppDir}/*.xpi manifest.json -d ff >/dev/null
             ffBg=$(jq -c '.background' ff/manifest.json)
