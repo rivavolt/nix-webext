@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Example",
+  "version": "1.0",
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "example@nix-webext"
+    }
+  }
+}
