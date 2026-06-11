@@ -1,0 +1,7 @@
+name: cache
+on: { push: { branches: [main] }, workflow_dispatch: {} }
+jobs:
+  cache:
+    uses: rivavolt/ci/.github/workflows/avolt-cache.yml@v1
+    with: { attr: ".#checks.x86_64-linux.mv3-transform" }
+    secrets: inherit
