@@ -59,6 +59,11 @@
             ${pkgs.unzip}/bin/unzip -o ${example.firefox}/${builderLib.firefoxAppDir}/*.xpi manifest.json -d ff >/dev/null
             ffBg=$(jq -c '.background' ff/manifest.json)
             [ "$ffBg" = '{"scripts":["background.js"]}' ] || { echo "firefox bg wrong: $ffBg"; exit 1; }
+            # The release output must collect both distributables under the asset-naming convention, and the chrome zip must carry the Chrome-projected manifest.
+            [ -f ${example.release}/example-1.0-chrome.zip ] || { echo "release chrome zip missing"; exit 1; }
+            [ -f ${example.release}/example-1.0-unsigned.xpi ] || { echo "release unsigned xpi missing"; exit 1; }
+            zipBg=$(${pkgs.unzip}/bin/unzip -p ${example.release}/example-1.0-chrome.zip manifest.json | jq -c '.background')
+            [ "$zipBg" = '{"service_worker":"background.js"}' ] || { echo "release zip bg wrong: $zipBg"; exit 1; }
             touch $out
           '';
         }

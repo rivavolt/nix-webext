@@ -2,9 +2,31 @@
 let
   # Firefox's add-on dir is keyed by the application UUID, not the extension's.
   firefoxAppDir = "share/mozilla/extensions/{ec8030f7-c20a-464f-9b0e-13a3a9e97384}";
+
+  # One extension's distributable release assets, collected flat for a GitHub Release: <pname>-<version>-chrome.zip (the Chrome Web Store UPLOAD format — the Store signs on publish, so CI never mints a CRX and the identity key stays in sops/host activation) and <pname>-<version>-unsigned.xpi (the AMO upload). The build stays pure: AMO signing is a service interaction, so it lives in the release workflow (rivavolt/ci avolt-release.yml), never here.
+  # Standalone (not only a mkBrowserExtension output) so flakes that compose their own package set — copy-urls and translate-selection zip their own WXT firefox bundle — can emit the same asset convention from their own parts.
+  mkReleaseAssets =
+    {
+      pkgs,
+      pname,
+      version,
+      # Derivation with the Chrome-ready unpacked content at $out/share/chromium-extension (mkBrowserExtension's chromeContent passthru), or null for Firefox-only extensions.
+      chromeContent ? null,
+      # Path to the unsigned XPI file, or null for Chrome-only extensions.
+      xpi ? null,
+    }:
+    pkgs.runCommand "${pname}-release-${version}" { nativeBuildInputs = [ pkgs.zip ]; } ''
+      mkdir -p $out
+      ${pkgs.lib.optionalString (chromeContent != null) ''
+        (cd ${chromeContent}/share/chromium-extension && zip -r -X $out/${pname}-${version}-chrome.zip .)
+      ''}
+      ${pkgs.lib.optionalString (xpi != null) ''
+        cp ${xpi} $out/${pname}-${version}-unsigned.xpi
+      ''}
+    '';
 in
 {
-  inherit firefoxAppDir;
+  inherit firefoxAppDir mkReleaseAssets;
 
   # Build the standardized {chrome, firefox, default} package set for one
   # WebExtension. The pure Nix outputs carry NO signing key: Chrome gets the
@@ -183,6 +205,13 @@ in
       # would not pull the derivation into any closure, so the path could be
       # absent at sign time.)
       inherit chromeContent;
+
+      # The flat release-asset directory avolt-release.yml publishes to a GitHub Release (see mkReleaseAssets above). Per-browser gating mirrors the package set; the gecko id is only forced for extensions that actually emit an XPI.
+      release = mkReleaseAssets {
+        inherit pkgs pname version;
+        chromeContent = if chrome then chromeContent else null;
+        xpi = if firefox then "${firefoxXpi}/${firefoxAppDir}/${geckoId'}.xpi" else null;
+      };
 
       default =
         if builtins.length defaultPaths == 1 then

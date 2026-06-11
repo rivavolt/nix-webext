@@ -43,9 +43,26 @@ nix-webext.lib.mkBrowserExtension {
 | `transformManifest` | apply the MV3 background transform (default true; off for WXT, which already emits per-target manifests) |
 | `extraPaths` | extra store paths to fold into `default` (native-messaging hosts, CLIs) |
 
-Returns `{ chrome, firefox, default }` plus the metadata passthrus `extId`,
-`geckoId`, `version`, `chromeContent` (the Chrome-transformed unpacked content
-the signer reads).
+Returns `{ chrome, firefox, default, release }` plus the metadata passthrus
+`extId`, `geckoId`, `version`, `chromeContent` (the Chrome-transformed unpacked
+content the signer reads).
+
+## `release` — distributable assets for GitHub Releases
+
+`release` is a flat directory of the extension's distributables, built by
+`lib.mkReleaseAssets` and published by the shared
+`rivavolt/ci/.github/workflows/avolt-release.yml` workflow on `v*` tags:
+
+- `<pname>-<version>-chrome.zip` — the Chrome Web Store **upload** format (the
+  Store signs on publish; CI never mints a CRX, the identity key stays in
+  sops/host activation)
+- `<pname>-<version>-unsigned.xpi` — the AMO upload; the release workflow signs
+  it via the AMO API (`--channel unlisted`, self-distribution) **outside** the
+  build, so the nix outputs stay pure
+
+One-browser extensions emit only their half. Flakes that compose their own
+package set call `lib.mkReleaseAssets { pkgs, pname, version, chromeContent?,
+xpi? }` directly to produce the same convention.
 
 ## Why `extId` is required (key externalization)
 
