@@ -51,7 +51,7 @@ content the signer reads).
 
 `release` is a flat directory of the extension's distributables, built by
 `lib.mkReleaseAssets` and published by the shared
-`rivavolt/ci/.github/workflows/avolt-release.yml` workflow on `v*` tags:
+`rivavolt/ci/.github/workflows/webext-release.yml` workflow on `v*` tags:
 
 - `<pname>-<version>-chrome.zip` — the Chrome Web Store **upload** format (the
   Store signs on publish; CI never mints a CRX, the identity key stays in
